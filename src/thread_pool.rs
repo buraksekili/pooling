@@ -1,5 +1,5 @@
 use crossbeam_queue::SegQueue;
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -16,7 +16,11 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(id: usize, job_queue: Arc<SegQueue<Job>>) -> Worker {
+    fn new(
+        id: usize,
+        job_queue: Arc<SegQueue<Job>>,
+        job_signal: Arc<(Mutex<bool>, Condvar)>,
+    ) -> Worker {
         // TODO: can we use lazy initialization?
         // TODO: each tasks are executed sequentially by each worker.
         // maybe, we can consider async within a worker.
@@ -27,8 +31,12 @@ impl Worker {
                     break;
                 }
                 None => {
-                    // TODO: This might be an issue (sleeping for a while to wait for a new job.)
-                    thread::sleep(Duration::from_millis(100));
+                    let (lock, cvar) = &*job_signal;
+                    let mut job_available = lock.lock().unwrap();
+                    while !*job_available {
+                        job_available = cvar.wait(job_available).unwrap();
+                    }
+                    *job_available = false;
                 }
             }
         });
@@ -43,6 +51,7 @@ impl Worker {
 pub struct ThreadPool {
     workers: Vec<Worker>,
     job_queue: Arc<SegQueue<Job>>,
+    job_signal: Arc<(Mutex<bool>, Condvar)>,
 }
 
 impl ThreadPool {
@@ -50,13 +59,22 @@ impl ThreadPool {
         assert!(size > 0);
 
         let job_queue = Arc::new(SegQueue::new());
+        let job_signal = Arc::new((Mutex::new(false), Condvar::new()));
         let mut workers = Vec::with_capacity(size);
 
         for id in 0..size {
-            workers.push(Worker::new(id, Arc::clone(&job_queue)));
+            workers.push(Worker::new(
+                id,
+                Arc::clone(&job_queue),
+                Arc::clone(&job_signal),
+            ));
         }
 
-        ThreadPool { workers, job_queue }
+        ThreadPool {
+            workers,
+            job_queue,
+            job_signal,
+        }
     }
 
     pub fn execute<F>(&self, f: F) -> Result<(), ThreadPoolError>
@@ -65,6 +83,12 @@ impl ThreadPool {
     {
         let job = Job::Task(Box::new(f));
         self.job_queue.push(job);
+
+        let (lock, cvar) = &*self.job_signal;
+        let mut job_available = lock.lock().unwrap();
+        *job_available = true;
+        cvar.notify_one();
+
         Ok(())
     }
 
