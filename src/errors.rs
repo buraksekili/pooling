@@ -14,6 +14,6 @@ pub enum ThreadPoolError {
 
 #[derive(Error, Debug)]
 pub enum JobError {
-    #[error("Job execution failed: {0}")]
-    ExecutionError(String),
+    // #[error("Job execution failed: {0}")]
+    // ExecutionError(String),
 }

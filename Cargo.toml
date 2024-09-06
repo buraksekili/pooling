@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 crossbeam-channel = "0.5.13"
+crossbeam-deque = "0.8.5"
 crossbeam-queue = "0.3.11"
+rand = "0.8.5"
 thiserror = "1.0.63"

@@ -1,19 +1,29 @@
+use rand::Rng;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 use thread_pool_rs::ThreadPool;
 
+fn sleep_random_duration(min_ms: u64, max_ms: u64) {
+    let mut rng = rand::thread_rng();
+    let sleep_duration = rng.gen_range(min_ms..=max_ms);
+
+    thread::sleep(Duration::from_millis(sleep_duration));
+}
+
 // Function to handle a client connection
 fn handle_client(mut stream: TcpStream) {
+    sleep_random_duration(84, 218);
     // println!("Handling client connection");
     stream
         .set_nonblocking(true)
         .expect("Failed to set non-blocking");
 
     let mut buffer = [0; 1024];
-    let mut response = String::from("HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!");
+    let response = String::from("HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!");
 
     loop {
         match stream.read(&mut buffer) {
@@ -25,9 +35,6 @@ fn handle_client(mut stream: TcpStream) {
                 // No data available yet, yield to other tasks
                 thread::yield_now();
                 continue;
-            }
-            Err(e) => {
-                break;
             }
             _ => {}
         }
@@ -52,7 +59,7 @@ fn run_pooled_server(pool_size: usize) {
         match stream {
             Ok(stream) => {
                 let pool = Arc::clone(&pool);
-                if let Err(e) = pool.execute(move || {
+                if let Err(_) = pool.execute(move || {
                     handle_client(stream);
                     Ok(())
                 }) {
@@ -87,7 +94,7 @@ fn run_spawning_server() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "pool" {
-        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(120);
+        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(200);
         run_pooled_server(pool_size);
     } else {
         run_spawning_server();

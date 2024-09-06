@@ -25,18 +25,21 @@ impl Worker {
         // TODO: each tasks are executed sequentially by each worker.
         // maybe, we can consider async within a worker.
         let thread = thread::spawn(move || loop {
+            // println!("Thread[{}] started", id);
             match job_queue.pop() {
-                Some(Job::Task(task)) => if let Err(e) = task() {},
+                Some(Job::Task(task)) => if let Err(_) = task() {},
                 Some(Job::Shutdown) => {
                     break;
                 }
                 None => {
+                    // println!("Thread[{}] waiting", id);
                     let (lock, cvar) = &*job_signal;
                     let mut job_available = lock.lock().unwrap();
                     while !*job_available {
                         job_available = cvar.wait(job_available).unwrap();
                     }
                     *job_available = false;
+                    // println!("Thread[{}] got a new job", id);
                 }
             }
         });
@@ -87,7 +90,7 @@ impl ThreadPool {
         let (lock, cvar) = &*self.job_signal;
         let mut job_available = lock.lock().unwrap();
         *job_available = true;
-        cvar.notify_one();
+        cvar.notify_all();
 
         Ok(())
     }
