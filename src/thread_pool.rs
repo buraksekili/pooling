@@ -17,28 +17,20 @@ struct Worker {
 
 impl Worker {
     fn new(id: usize, job_queue: Arc<SegQueue<Job>>) -> Worker {
-        let thread = thread::spawn(move || {
-            // println!("Worker {} started", id);
-            loop {
-                match job_queue.pop() {
-                    Some(Job::Task(task)) => {
-                        // println!("Worker {} processing job", id);
-                        if let Err(e) = task() {
-                            // eprintln!("Worker {}: Job error: {}", id, e);
-                        }
-                        // println!("Worker {} finished job", id);
-                    }
-                    Some(Job::Shutdown) => {
-                        // println!("Worker {} received shutdown signal", id);
-                        break;
-                    }
-                    None => {
-                        // Queue is empty, sleep for a short while before checking again
-                        thread::sleep(Duration::from_millis(100));
-                    }
+        // TODO: can we use lazy initialization?
+        // TODO: each tasks are executed sequentially by each worker.
+        // maybe, we can consider async within a worker.
+        let thread = thread::spawn(move || loop {
+            match job_queue.pop() {
+                Some(Job::Task(task)) => if let Err(e) = task() {},
+                Some(Job::Shutdown) => {
+                    break;
+                }
+                None => {
+                    // TODO: This might be an issue (sleeping for a while to wait for a new job.)
+                    thread::sleep(Duration::from_millis(100));
                 }
             }
-            // println!("Worker {} shutting down", id);
         });
 
         Worker {
@@ -71,10 +63,8 @@ impl ThreadPool {
     where
         F: FnOnce() -> Result<(), Box<dyn std::error::Error>> + Send + 'static,
     {
-        // println!("Queuing new job");
         let job = Job::Task(Box::new(f));
         self.job_queue.push(job);
-        // println!("Job queued successfully");
         Ok(())
     }
 

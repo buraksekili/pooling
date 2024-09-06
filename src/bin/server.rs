@@ -18,16 +18,7 @@ fn handle_client(mut stream: TcpStream) {
     loop {
         match stream.read(&mut buffer) {
             Ok(size) if size > 0 => {
-                // println!("Read {} bytes from client", size);
-                if let Err(e) = stream.write_all(response.as_bytes()) {
-                    // eprintln!("Failed to write to stream: {}", e);
-                } else {
-                    // println!("Wrote response back to client");
-                }
-                break;
-            }
-            Ok(0) => {
-                // println!("Client closed the connection");
+                if let Ok(_) = stream.write_all(response.as_bytes()) {}
                 break;
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -36,7 +27,6 @@ fn handle_client(mut stream: TcpStream) {
                 continue;
             }
             Err(e) => {
-                // eprintln!("Failed to read from stream: {}", e);
                 break;
             }
             _ => {}
@@ -53,15 +43,14 @@ fn run_pooled_server(pool_size: usize) {
         .expect("Cannot set non-blocking");
 
     let pool = Arc::new(ThreadPool::new(pool_size));
-    // println!(
-    //     "Running TCP with pooling (size: {}) through :7878",
-    //     pool_size
-    // );
+    println!(
+        "Running TCP with pooling (size: {}) through :7878",
+        pool_size
+    );
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                // println!("New connection: {}", stream.peer_addr().unwrap());
                 let pool = Arc::clone(&pool);
                 if let Err(e) = pool.execute(move || {
                     handle_client(stream);
@@ -83,7 +72,7 @@ fn run_pooled_server(pool_size: usize) {
 // Server spawning a new thread for each connection
 fn run_spawning_server() {
     let listener = TcpListener::bind("127.0.0.1:7879").expect("Failed to bind to address");
-    // println!("Running TCP without pooling through :7879");
+    println!("Running TCP without pooling through :7879");
 
     for stream in listener.incoming() {
         match stream {
@@ -98,7 +87,7 @@ fn run_spawning_server() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "pool" {
-        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(50);
+        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(120);
         run_pooled_server(pool_size);
     } else {
         run_spawning_server();
