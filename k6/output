@@ -1,48 +1,48 @@
-$ k6 run --summary-trend-stats="avg,min,med,max,p(90),p(95)" ./k6/run.js
 
-          /\      |‾‾| /‾‾/   /‾‾/   
-     /\  /  \     |  |/  /   /  /    
-    /  \/    \    |     (   /   ‾‾\  
-   /          \   |  |\  \ |  (‾)  | 
+          /\      |‾‾| /‾‾/   /‾‾/
+     /\  /  \     |  |/  /   /  /
+    /  \/    \    |     (   /   ‾‾\
+   /          \   |  |\  \ |  (‾)  |
   / __________ \  |__| \__\ \_____/ .io
 
      execution: local
         script: ./k6/run.js
         output: -
 
-     scenarios: (100.00%) 2 scenarios, 300 max VUs, 1m10s max duration (incl. graceful stop):
-              * pooled_server: Up to 200 looping VUs for 40s over 3 stages (gracefulRampDown: 30s, exec: testPooledServer, gracefulStop: 30s)
-              * spawning_server: Up to 100 looping VUs for 40s over 3 stages (gracefulRampDown: 30s, exec: testSpawningServer, gracefulStop: 30s)
+     scenarios: (100.00%) 2 scenarios, 900 max VUs, 40s max duration (incl. graceful stop):
+              * pooled_server: 800.00 iterations/s for 10s (maxVUs: 20-450, exec: testPooledServer, gracefulStop: 30s)
+              * spawning_server: 800.00 iterations/s for 10s (maxVUs: 20-450, exec: testSpawningServer, gracefulStop: 30s)
 
 
      ✓ spawning status was 200
      ✓ pooled status was 200
 
-     checks.........................: 100.00% ✓ 18641      ✗ 0    
-     data_received..................: 969 kB  23 kB/s
-     data_sent......................: 1.5 MB  36 kB/s
-     http_req_blocked...............: avg=268.23ms min=45µs     med=384µs    max=19.6s    p(90)=1.45ms   p(95)=2.56ms  
-     http_req_connecting............: avg=268.18ms min=37µs     med=339µs    max=19.6s    p(90)=1.39ms   p(95)=2.37ms  
-     http_req_duration..............: avg=2.82ms   min=36µs     med=1.52ms   max=109.47ms p(90)=7.33ms   p(95)=10.13ms 
-       { expected_response:true }...: avg=2.82ms   min=36µs     med=1.52ms   max=109.47ms p(90)=7.33ms   p(95)=10.13ms 
-     http_req_failed................: 0.00%   ✓ 0          ✗ 18641
-     http_req_receiving.............: avg=122.07µs min=3µs      med=28µs     max=29.49ms  p(90)=211µs    p(95)=546µs   
-     http_req_sending...............: avg=47.9µs   min=3µs      med=15µs     max=15.19ms  p(90)=78µs     p(95)=160µs   
-     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s      
-     http_req_waiting...............: avg=2.65ms   min=23µs     med=1.42ms   max=109.35ms p(90)=6.97ms   p(95)=9.6ms   
-     http_reqs......................: 18641   450.304281/s
-     iteration_duration.............: avg=372.78ms min=100.15ms med=103.47ms max=19.72s   p(90)=112.06ms p(95)=118.97ms
-     iterations.....................: 18641   450.304281/s
-     pooled_fail_rate...............: 0.00%   ✓ 0          ✗ 10604
-     pooled_req_duration............: avg=4.17265  min=0.072    med=2.867    max=41.149   p(90)=9.2616   p(95)=11.9658 
-     pooled_req_rate................: 100.00% ✓ 10604      ✗ 0    
-     spawning_fail_rate.............: 0.00%   ✓ 0          ✗ 8037 
-     spawning_req_duration..........: avg=1.058356 min=0.036    med=0.344    max=109.479  p(90)=2.537    p(95)=4.2226  
-     spawning_req_rate..............: 100.00% ✓ 8037       ✗ 0    
-     vus............................: 6       min=6        max=299
-     vus_max........................: 300     min=300      max=300
+     checks.........................: 100.00% ✓ 15571       ✗ 0
+     data_received..................: 810 kB  79 kB/s
+     data_sent......................: 1.2 MB  121 kB/s
+     dropped_iterations.............: 431     41.824844/s
+     http_req_blocked...............: avg=422.12µs   min=40µs     med=188µs    max=36.94ms  p(90)=287µs    p(95)=557.49µs
+     http_req_connecting............: avg=406.82µs   min=32µs     med=176µs    max=36.93ms  p(90)=272µs    p(95)=491.99µs
+     http_req_duration..............: avg=153.48ms   min=84.1ms   med=153.54ms max=251.73ms p(90)=207.28ms p(95)=213.84ms
+       { expected_response:true }...: avg=153.48ms   min=84.1ms   med=153.54ms max=251.73ms p(90)=207.28ms p(95)=213.84ms
+     http_req_failed................: 0.00%   ✓ 0           ✗ 15571
+     http_req_receiving.............: avg=31.5µs     min=5µs      med=18µs     max=2.65ms   p(90)=32µs     p(95)=61µs
+     http_req_sending...............: avg=19.57µs    min=3µs      med=8µs      max=9.94ms   p(90)=16µs     p(95)=25µs
+     http_req_tls_handshaking.......: avg=0s         min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=153.43ms   min=84.06ms  med=153.5ms  max=251.69ms p(90)=207.2ms  p(95)=213.8ms
+     http_reqs......................: 15571   1511.031667/s
+     iteration_duration.............: avg=254.39ms   min=184.35ms med=254.36ms max=355.52ms p(90)=307.84ms p(95)=315.09ms
+     iterations.....................: 15571   1511.031667/s
+     pooled_fail_rate...............: 0.00%   ✓ 0           ✗ 7787
+     pooled_req_duration............: avg=153.547703 min=84.163   med=153.163  max=249.041  p(90)=207.3912 p(95)=213.8267
+     pooled_req_rate................: 100.00% ✓ 7787        ✗ 0
+     spawning_fail_rate.............: 0.00%   ✓ 0           ✗ 7784
+     spawning_req_duration..........: avg=153.425835 min=84.101   med=153.7425 max=251.738  p(90)=206.8427 p(95)=213.9423
+     spawning_req_rate..............: 100.00% ✓ 7784        ✗ 0
+     vus............................: 403     min=371       max=420
+     vus_max........................: 465     min=384       max=465
 
 
-running (0m41.4s), 000/300 VUs, 18641 complete and 0 interrupted iterations
-pooled_server   ✓ [======================================] 000/200 VUs  40s
-spawning_server ✓ [======================================] 000/100 VUs  40s
+running (10.3s), 000/465 VUs, 15571 complete and 0 interrupted iterations
+pooled_server   ✓ [=====================================] 000/233 VUs  10s  800.00 iters/s
+spawning_server ✓ [=====================================] 000/232 VUs  10s  800.00 iters/s

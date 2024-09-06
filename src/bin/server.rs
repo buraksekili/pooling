@@ -17,10 +17,6 @@ fn sleep_random_duration(min_ms: u64, max_ms: u64) {
 // Function to handle a client connection
 fn handle_client(mut stream: TcpStream) {
     sleep_random_duration(84, 218);
-    // println!("Handling client connection");
-    stream
-        .set_nonblocking(true)
-        .expect("Failed to set non-blocking");
 
     let mut buffer = [0; 1024];
     let response = String::from("HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!");
@@ -45,10 +41,6 @@ fn handle_client(mut stream: TcpStream) {
 // Server using thread pool
 fn run_pooled_server(pool_size: usize) {
     let listener = TcpListener::bind("127.0.0.1:7878").expect("Failed to bind to address");
-    listener
-        .set_nonblocking(true)
-        .expect("Cannot set non-blocking");
-
     let pool = Arc::new(ThreadPool::new(pool_size));
     println!(
         "Running TCP with pooling (size: {}) through :7878",
@@ -94,7 +86,7 @@ fn run_spawning_server() {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "pool" {
-        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(200);
+        let pool_size = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(250);
         run_pooled_server(pool_size);
     } else {
         run_spawning_server();

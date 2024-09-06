@@ -9,23 +9,24 @@ const spawningFailRate = new Rate("spawning_fail_rate");
 const pooledReqRate = new Rate("pooled_req_rate");
 const spawningReqRate = new Rate("spawning_req_rate");
 
-const myStages = [
-  { duration: "5s", target: 200 },
-  { duration: "5s", target: 120},
-];
-
 export const options = {
   scenarios: {
     pooled_server: {
-      executor: "ramping-vus",
-      startVUs: 50,
-      stages: myStages,
+      executor: "constant-arrival-rate",
+      duration: "10s",
+      rate: 800,
+      timeUnit: "1s",
+      preAllocatedVUs: 20,
+      maxVUs: 450,
       exec: "testPooledServer",
     },
     spawning_server: {
-      executor: "ramping-vus",
-      startVUs: 50,
-      stages: myStages,
+      executor: "constant-arrival-rate",
+      duration: "10s",
+      rate: 800,
+      timeUnit: "1s",
+      preAllocatedVUs: 20,
+      maxVUs: 450,
       exec: "testSpawningServer",
     },
   },
