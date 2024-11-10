@@ -1,14 +1,12 @@
 use crossbeam_queue::SegQueue;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::errors::ThreadPoolError;
 
-pub enum Job {
-    Task(Box<dyn FnOnce() -> Result<(), Box<dyn std::error::Error>> + Send + 'static>),
-    Shutdown,
-}
+type Job = Box<dyn FnOnce() -> Result<(), Box<dyn std::error::Error>> + Send + 'static>;
 
 struct Worker {
     id: usize,
@@ -20,26 +18,21 @@ impl Worker {
         id: usize,
         job_queue: Arc<SegQueue<Job>>,
         job_signal: Arc<(Mutex<bool>, Condvar)>,
+        running: Arc<AtomicBool>,
     ) -> Worker {
-        // TODO: can we use lazy initialization?
-        // TODO: each tasks are executed sequentially by each worker.
-        // maybe, we can consider async within a worker.
         let thread = thread::spawn(move || loop {
-            // println!("Thread[{}] started", id);
             match job_queue.pop() {
-                Some(Job::Task(task)) => if let Err(_) = task() {},
-                Some(Job::Shutdown) => {
-                    break;
-                }
+                Some(task) => if let Err(_) = task() {},
                 None => {
-                    // println!("Thread[{}] waiting", id);
                     let (lock, cvar) = &*job_signal;
                     let mut job_available = lock.lock().unwrap();
-                    while !*job_available {
-                        job_available = cvar.wait(job_available).unwrap();
+                    while !*job_available && running.load(Ordering::Relaxed) {
+                        job_available = cvar
+                            .wait_timeout(job_available, Duration::from_millis(100))
+                            .unwrap()
+                            .0;
                     }
                     *job_available = false;
-                    // println!("Thread[{}] got a new job", id);
                 }
             }
         });
@@ -55,6 +48,7 @@ pub struct ThreadPool {
     workers: Vec<Worker>,
     job_queue: Arc<SegQueue<Job>>,
     job_signal: Arc<(Mutex<bool>, Condvar)>,
+    running: Arc<AtomicBool>,
 }
 
 impl ThreadPool {
@@ -64,12 +58,14 @@ impl ThreadPool {
         let job_queue = Arc::new(SegQueue::new());
         let job_signal = Arc::new((Mutex::new(false), Condvar::new()));
         let mut workers = Vec::with_capacity(size);
+        let running = Arc::new(AtomicBool::new(true));
 
         for id in 0..size {
             workers.push(Worker::new(
                 id,
                 Arc::clone(&job_queue),
                 Arc::clone(&job_signal),
+                Arc::clone(&running),
             ));
         }
 
@@ -77,6 +73,7 @@ impl ThreadPool {
             workers,
             job_queue,
             job_signal,
+            running,
         }
     }
 
@@ -98,9 +95,21 @@ impl ThreadPool {
     pub fn shutdown(&mut self, timeout: Duration) -> Result<(), ThreadPoolError> {
         let start = Instant::now();
 
-        // Signal all threads to shutdown
-        for _ in &self.workers {
-            self.job_queue.push(Job::Shutdown);
+        // Signal all workers to stop
+        self.running.store(false, Ordering::SeqCst);
+
+        // Wake up all waiting threads
+        let (lock, cvar) = &*self.job_signal;
+        match lock.try_lock() {
+            Ok(mut job_available) => {
+                *job_available = true;
+                cvar.notify_all();
+            }
+            Err(_) => {
+                // We couldn't acquire the lock, but we've set running to false,
+                // so workers will eventually notice
+                println!("Warning: Couldn't acquire lock to notify workers. They will exit on their next timeout check.");
+            }
         }
 
         for worker in &mut self.workers {
